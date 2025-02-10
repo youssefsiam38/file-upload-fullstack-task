@@ -33,7 +33,7 @@ The purpose of this assignment is to build a full-stack web application that pro
 - **Upload Progress Indicator:**  
   Implement a progress bar that provides real-time feedback on the status of the file upload process for each file.
 
-### File Upload UI
+#### File Upload UI
 
   Develop an interface with multiple file upload with a start import button and once you click on that you should start uploading and processing file and files should appear on this page with 2 progress bars based on the below details, you also need to show upload completion time, processing completion time and overall completion time (the sum of both basically)
 
@@ -83,7 +83,7 @@ The project repository on GitHub is organized as follows:
   - Include a README file with setup instructions, build/run commands, and any framework-specific notes.
 
 - **data/**  
-  - Contains 10 large CSV files that will be used for testing the file upload functionality.
+  - Contains 10 large CSV files that you should use for testing the file upload functionality.
 
 ### 3.2 Documentation Guidelines
 
