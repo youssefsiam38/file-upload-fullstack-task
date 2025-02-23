@@ -4,7 +4,6 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"mime/multipart"
 	"net/http"
@@ -80,10 +79,7 @@ func (g gradesAPIs) UploadGradesCSVs(w http.ResponseWriter, r *http.Request) {
 			}
 
 			for noOfInsertedGrades := range noOfInsertedGradesChan {
-				log.Println("noOfInsertedGrades", noOfInsertedGrades)
-				log.Println("len(temp)", len(temp))
 				percentage := (float64(noOfInsertedGrades) / float64(len(temp))) * 100
-				log.Println(percentage)
 				if int(percentage) == 100 {
 					progressChan <- fmt.Sprintf("{\"fileIndex\":%d,\"processingComplete\":true}\n", idx)
 				} else {
