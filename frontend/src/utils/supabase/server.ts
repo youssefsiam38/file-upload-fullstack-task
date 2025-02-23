@@ -5,7 +5,7 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./constants";
 export const createSupabaseServerClient = () => {
   const cookieStore = cookies();
 
-  return createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  return createServerClient(SUPABASE_URL || "", SUPABASE_ANON_KEY || "", {
     cookies: {
       get(name: string) {
         return cookieStore.get(name)?.value;
