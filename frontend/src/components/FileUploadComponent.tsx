@@ -220,13 +220,13 @@ const FileUploadComponent: React.FC = () => {
         .filter((time): time is number => !!time);
 
     // Overall start and end times
-    const overallStartTime = uploadStartTimes.length > 0
-        ? Math.min(...uploadStartTimes)
-        : undefined;
+    const overallStartTime =
+        uploadStartTimes.length > 0 ? Math.min(...uploadStartTimes) : undefined;
 
-    const overallEndTime = processingEndTimes.length > 0
-        ? Math.max(...processingEndTimes)
-        : undefined;
+    const overallEndTime =
+        processingEndTimes.length > 0
+            ? Math.max(...processingEndTimes)
+            : undefined;
 
     // Total overall time
     const totalOverallTime =
@@ -243,7 +243,8 @@ const FileUploadComponent: React.FC = () => {
     // Total processing time (from earliest processing start to latest processing end)
     const totalProcessingTime =
         processingStartTimes.length > 0 && processingEndTimes.length > 0
-            ? Math.max(...processingEndTimes) - Math.min(...processingStartTimes)
+            ? Math.max(...processingEndTimes) -
+              Math.min(...processingStartTimes)
             : 0;
 
     // Format overall times
@@ -332,15 +333,17 @@ const FileUploadComponent: React.FC = () => {
                                                                 <>
                                                                     Upload
                                                                     Progress:{" "}
-                                                                    {(
-                                                                        fileObj.uploadProgress?.toFixed(
-                                                                            2
-                                                                        ) ||
+                                                                    {(fileObj.uploadProgress?.toFixed(
+                                                                        2
+                                                                    ) ||
                                                                         "0.00") +
                                                                         "%"}
                                                                     <Progress
                                                                         percent={
-                                                                            fileObj.uploadProgress ||
+                                                                            toFixedNumber(
+                                                                                fileObj.uploadProgress,
+                                                                                2
+                                                                            ) ||
                                                                             0
                                                                         }
                                                                         status={
@@ -372,9 +375,10 @@ const FileUploadComponent: React.FC = () => {
                                                                 <>
                                                                     Processing
                                                                     Progress:{" "}
-                                                                    {(
-                                                                        fileObj.processProgress ||
-                                                                        0) + "%"}
+                                                                    {(fileObj.processProgress?.toFixed(
+                                                                        2
+                                                                    ) || 0) +
+                                                                        "%"}
                                                                     <Progress
                                                                         percent={
                                                                             fileObj.processProgress ||
@@ -438,5 +442,9 @@ const FileUploadComponent: React.FC = () => {
         </>
     );
 };
+
+function toFixedNumber(num: number, digits: number) {
+    return parseFloat(num.toFixed(digits));
+}
 
 export default FileUploadComponent;
