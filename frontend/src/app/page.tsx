@@ -78,8 +78,6 @@ export default function IndexPage() {
 
     const hasSelected = selectedRowKeys.length > 0;
 
-    console.log(tableQueryResult);
-
     return (
         <div style={{ padding: 40 }}>
             <Suspense>
