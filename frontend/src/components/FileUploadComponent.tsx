@@ -375,9 +375,8 @@ const FileUploadComponent: React.FC = () => {
                                                                 <>
                                                                     Processing
                                                                     Progress:{" "}
-                                                                    {(fileObj.processProgress?.toFixed(
-                                                                        2
-                                                                    ) || 0) +
+                                                                    {(fileObj.processProgress ||
+                                                                        0) +
                                                                         "%"}
                                                                     <Progress
                                                                         percent={
