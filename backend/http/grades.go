@@ -80,6 +80,8 @@ func (g gradesAPIs) UploadGradesCSVs(w http.ResponseWriter, r *http.Request) {
 			}
 
 			for noOfInsertedGrades := range noOfInsertedGradesChan {
+				log.Println("noOfInsertedGrades", noOfInsertedGrades)
+				log.Println("len(temp)", len(temp))
 				percentage := (float64(noOfInsertedGrades) / float64(len(temp))) * 100
 				log.Println(percentage)
 				if int(percentage) == 100 {
