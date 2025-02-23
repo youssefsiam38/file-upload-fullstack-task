@@ -43,7 +43,7 @@ func (g gradesAPIs) UploadGradesCSVs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse the multipart form
-	err := r.ParseMultipartForm(32 << 20) // 32 MB
+	err := r.ParseMultipartForm(1 << 30) // 1 GB
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
