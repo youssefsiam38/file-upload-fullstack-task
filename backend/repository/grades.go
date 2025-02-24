@@ -26,7 +26,7 @@ func (g *GradesPgRepository) InsertGrades(ctx context.Context, grades []models.S
 	progress := make(chan int)
 	go func() {
 		defer close(progress)
-		const batchSize = 200
+		const batchSize = 400
 		numGrades := len(grades)
 
 		for batchStart := 0; batchStart < numGrades; batchStart += batchSize {
