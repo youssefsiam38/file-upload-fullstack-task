@@ -4,7 +4,7 @@ import {
     Alert,
     Button,
     Card,
-    List,
+    Divider,
     Modal,
     Progress,
     Typography,
@@ -15,13 +15,6 @@ import { RcFile } from "antd/lib/upload";
 import { UploadChangeParam, UploadFile } from "antd/lib/upload/interface";
 import React, { useEffect, useState } from "react";
 
-interface ProgressUpdate {
-    fileIndex: number;
-    processingProgress?: number;
-    processingComplete?: boolean;
-    error?: string;
-}
-
 interface CustomUploadFile extends UploadFile {
     uploadProgress?: number;
     processProgress?: number;
@@ -29,6 +22,8 @@ interface CustomUploadFile extends UploadFile {
     uploadEndTime?: number;
     processingStartTime?: number;
     processingEndTime?: number;
+    fileId?: string;
+    recordsProcessed?: number;
 }
 
 const FileUploadComponent: React.FC = () => {
@@ -47,6 +42,8 @@ const FileUploadComponent: React.FC = () => {
                 uploadEndTime: undefined,
                 processingStartTime: undefined,
                 processingEndTime: undefined,
+                fileId: undefined,
+                recordsProcessed: 0,
             }))
         );
     };
@@ -63,30 +60,31 @@ const FileUploadComponent: React.FC = () => {
     }, [fileList, uploading]);
 
     const handleUpload = (): void => {
-        const xhr = new XMLHttpRequest();
-        const formData = new FormData();
-        fileList.forEach((fileObj) => {
-            const originFileObj = fileObj.originFileObj as RcFile;
-            if (originFileObj) {
-                formData.append("files", originFileObj);
-            }
-        });
-
         setUploading(true);
 
-        // Track upload progress
-        // @ts-ignore
-        xhr.upload.onprogress = (
-            event: ProgressEvent<XMLHttpRequestEventTarget>
-        ): void => {
-            if (event.lengthComputable) {
-                const total = event.total;
-                const loaded = event.loaded;
-                const uploadProgress = (loaded / total) * 100;
+        fileList.forEach((fileObj, index) => {
+            const xhr = new XMLHttpRequest();
+            const formData = new FormData();
+            const originFileObj = fileObj.originFileObj as RcFile;
+            if (originFileObj) {
+                formData.append("file", originFileObj);
+            }
 
-                // Update upload progress for all files
-                setFileList((prevFileList) =>
-                    prevFileList.map((fObj) => {
+            // Track upload progress
+            // @ts-ignore
+            xhr.upload.onprogress = (
+                event: ProgressEvent<XMLHttpRequestEventTarget>
+            ): void => {
+                if (event.lengthComputable) {
+                    const total = event.total;
+                    const loaded = event.loaded;
+                    const uploadProgress = (loaded / total) * 100;
+
+                    setFileList((prevFileList) => {
+                        const newFileList = [...prevFileList];
+                        const fObj = newFileList[index];
+                        // Update upload progress
+                        fObj.uploadProgress = uploadProgress;
                         // Set upload start time if not already set
                         if (!fObj.uploadStartTime) {
                             fObj.uploadStartTime = Date.now();
@@ -95,89 +93,105 @@ const FileUploadComponent: React.FC = () => {
                         if (uploadProgress === 100 && !fObj.uploadEndTime) {
                             fObj.uploadEndTime = Date.now();
                         }
-                        return { ...fObj, uploadProgress };
-                    })
-                );
-            }
-        };
+                        return newFileList;
+                    });
+                }
+            };
 
-        // Track processing progress
-        let lastIndex = 0;
-
-        // Handle streaming response
-        xhr.onprogress = (): void => {
-            // Process new data as it arrives
-            const responseText = xhr.responseText;
-            const newText = responseText.substring(lastIndex);
-            lastIndex = responseText.length;
-            const lines = newText.split("\n");
-
-            setFileList((prevFileList) => {
-                let newFileList = [...prevFileList];
-
-                lines.forEach((line) => {
-                    if (line.trim() !== "") {
-                        try {
-                            const json: ProgressUpdate = JSON.parse(line);
-                            const {
-                                fileIndex,
-                                processingProgress,
-                                processingComplete,
-                            } = json;
-
-                            newFileList = newFileList.map((fObj, idx) => {
-                                if (idx === fileIndex) {
-                                    if (!fObj.processingStartTime) {
-                                        fObj.processingStartTime = Date.now();
-                                    }
-                                    if (
-                                        processingComplete &&
-                                        !fObj.processingEndTime
-                                    ) {
-                                        fObj.processingEndTime = Date.now();
-                                    }
-                                    return {
-                                        ...fObj,
-                                        processProgress:
-                                            processingProgress || 100,
-                                    };
-                                }
-                                return fObj;
-                            });
-                        } catch (e) {
-                            console.error("Error parsing line:", line, e);
-                        }
-                    }
-                });
-
-                return newFileList;
-            });
-        };
-
-        // Handle request completion
-        xhr.onreadystatechange = (): void => {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
+            // Handle upload completion
+            xhr.onload = (): void => {
                 if (xhr.status >= 200 && xhr.status < 300) {
                     // Request completed successfully
-                    // If there is any additional final processing needed, do it here
+                    // Parse the response to get file_id
+                    let response;
+                    try {
+                        response = JSON.parse(xhr.responseText);
+                    } catch (e) {
+                        console.error("Error parsing response:", e);
+                    }
+                    const { file_id } = response || {};
+                    if (file_id) {
+                        setFileList((prevFileList) => {
+                            const newFileList = [...prevFileList];
+                            const fObj = newFileList[index];
+                            fObj.fileId = file_id;
+                            // Assume processing starts immediately after upload completes
+                            fObj.processingStartTime = Date.now();
+                            return newFileList;
+                        });
+                    }
                 } else {
                     // HTTP error occurred
                     setUploading(false);
                     message.error(
-                        `Upload failed with status ${xhr.status}: ${xhr.statusText}`
+                        `Upload failed for file ${fileObj.name} with status ${xhr.status}: ${xhr.statusText}`
                     );
                 }
-            }
-        };
+            };
 
-        xhr.onerror = (): void => {
-            setUploading(false);
-            message.error("Network error occurred during upload.");
-        };
+            xhr.onerror = (): void => {
+                setUploading(false);
+                message.error(
+                    `Network error occurred during upload of file ${fileObj.name}.`
+                );
+            };
 
-        xhr.open("POST", "/api/grades/upload");
-        xhr.send(formData);
+            xhr.open("POST", "/api/grades/upload");
+            xhr.send(formData);
+        });
     };
+
+    // Polling for processing progress
+    useEffect(() => {
+        // Check if there are any files that need polling
+        const filesToPoll = fileList.filter(
+            (file) => file.fileId && file.processProgress !== 100
+        );
+
+        if (filesToPoll.length > 0) {
+            const intervalId = setInterval(() => {
+                // Fetch progress updates
+                fetch("/api/grades/progress")
+                    .then((res) => res.json())
+                    .then((data) => {
+                        // data is an array of {file_id, records_processed, progress}
+                        setFileList((prevFileList) => {
+                            return prevFileList.map((file) => {
+                                if (file.fileId) {
+                                    const progressData = data.find(
+                                        (d: any) => d.file_id === file.fileId
+                                    );
+                                    if (progressData) {
+                                        const {
+                                            progress,
+                                            records_processed,
+                                        } = progressData;
+                                        const newFile = {
+                                            ...file,
+                                            processProgress: progress,
+                                            recordsProcessed: records_processed,
+                                        };
+                                        if (
+                                            progress === 100 &&
+                                            !newFile.processingEndTime
+                                        ) {
+                                            newFile.processingEndTime = Date.now();
+                                        }
+                                        return newFile;
+                                    }
+                                }
+                                return file;
+                            });
+                        });
+                    })
+                    .catch((err) => {
+                        console.error("Error fetching progress:", err);
+                    });
+            }, 2000);
+
+            return () => clearInterval(intervalId);
+        }
+    }, [fileList]);
 
     // Function to format time durations
     const formatDuration = (start?: number, end?: number): string => {
@@ -290,7 +304,10 @@ const FileUploadComponent: React.FC = () => {
                         onChange={handleChange}
                         disabled={uploading}
                     >
-                        <Button icon={<UploadOutlined />} disabled={uploading}>
+                        <Button
+                            icon={<UploadOutlined />}
+                            disabled={uploading}
+                        >
                             Select Files
                         </Button>
                     </Upload>
@@ -311,89 +328,73 @@ const FileUploadComponent: React.FC = () => {
                             style={{ marginTop: "16px" }}
                         />
                     )}
-                    <List
-                        itemLayout="horizontal"
-                        dataSource={fileList}
-                        renderItem={(fileObj, idx) => (
-                            <List.Item key={fileObj.uid}>
-                                <List.Item.Meta
-                                    title={
-                                        <Typography.Text>
-                                            {fileObj.name}
-                                        </Typography.Text>
-                                    }
-                                    description={
-                                        uploading || fileObj.uploadEndTime ? (
-                                            <>
-                                                <div>
-                                                    {uploading && (
-                                                        <>
-                                                            {fileObj.uploadProgress !==
-                                                                undefined && (
-                                                                <>
-                                                                    Upload
-                                                                    Progress:{" "}
-                                                                    {(fileObj.uploadProgress?.toFixed(
-                                                                        2
-                                                                    ) ||
-                                                                        "0.00") +
-                                                                        "%"}
-                                                                    <Progress
-                                                                        percent={
-                                                                            toFixedNumber(
-                                                                                fileObj.uploadProgress,
-                                                                                2
-                                                                            ) ||
-                                                                            0
-                                                                        }
-                                                                        status={
-                                                                            fileObj.uploadProgress ===
-                                                                            100
-                                                                                ? "success"
-                                                                                : "active"
-                                                                        }
-                                                                    />
-                                                                </>
-                                                            )}
-                                                        </>
+                    <div style={{ marginTop: "16px" }}>
+                        {fileList.map((fileObj, idx) => (
+                            <React.Fragment key={fileObj.uid}>
+                                <div>
+                                    <Typography.Title level={5}>
+                                        {fileObj.name}
+                                    </Typography.Title>
+                                    {/* Upload Progress */}
+                                    {fileObj.uploadProgress !== undefined && (
+                                        <>
+                                            <div>
+                                                Upload Progress:{" "}
+                                                {fileObj.uploadProgress.toFixed(
+                                                    2
+                                                )}
+                                                %
+                                            </div>
+                                            <Progress
+                                                percent={toFixedNumber(
+                                                    fileObj.uploadProgress,
+                                                    2
+                                                )}
+                                                status={
+                                                    fileObj.uploadProgress ===
+                                                    100
+                                                        ? "success"
+                                                        : "active"
+                                                }
+                                            />
+                                            {fileObj.uploadEndTime && (
+                                                <p>
+                                                    Upload Time:{" "}
+                                                    {formatDuration(
+                                                        fileObj.uploadStartTime,
+                                                        fileObj.uploadEndTime
                                                     )}
-                                                    {fileObj.uploadEndTime && (
-                                                        <p>
-                                                            Upload Time:{" "}
-                                                            {formatDuration(
-                                                                fileObj.uploadStartTime,
-                                                                fileObj.uploadEndTime
-                                                            )}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    {uploading && (
-                                                        <>
-                                                            {fileObj.processProgress !==
-                                                                undefined && (
-                                                                <>
-                                                                    Processing
-                                                                    Progress:{" "}
-                                                                    {(fileObj.processProgress ||
-                                                                        0) +
-                                                                        "%"}
-                                                                    <Progress
-                                                                        percent={
-                                                                            fileObj.processProgress ||
-                                                                            0
-                                                                        }
-                                                                        status={
-                                                                            fileObj.processProgress ===
-                                                                            100
-                                                                                ? "success"
-                                                                                : "active"
-                                                                        }
-                                                                    />
-                                                                </>
-                                                            )}
-                                                        </>
-                                                    )}
+                                                </p>
+                                            )}
+                                        </>
+                                    )}
+                                    {/* Processing Progress */}
+                                    {fileObj.fileId && (
+                                        <>
+                                            {fileObj.processProgress !==
+                                                undefined && (
+                                                <>
+                                                    <div>
+                                                        Processing Progress:{" "}
+                                                        {fileObj.processProgress}
+                                                        %
+                                                    </div>
+                                                    <Progress
+                                                        percent={
+                                                            fileObj.processProgress
+                                                        }
+                                                        status={
+                                                            fileObj.processProgress ===
+                                                            100
+                                                                ? "success"
+                                                                : "active"
+                                                        }
+                                                    />
+                                                    <div>
+                                                        Records Processed:{" "}
+                                                        {fileObj.recordsProcessed ||
+                                                            0}
+                                                    </div>
                                                     {fileObj.processingEndTime && (
                                                         <p>
                                                             Processing Time:{" "}
@@ -403,32 +404,35 @@ const FileUploadComponent: React.FC = () => {
                                                             )}
                                                         </p>
                                                     )}
-                                                </div>
-                                                {fileObj.uploadEndTime &&
-                                                    fileObj.processingEndTime && (
-                                                        <div>
-                                                            <p>
-                                                                Total Time:{" "}
-                                                                {formatDuration(
-                                                                    fileObj.uploadStartTime,
-                                                                    fileObj.processingEndTime
-                                                                )}
-                                                            </p>
-                                                        </div>
+                                                </>
+                                            )}
+                                        </>
+                                    )}
+                                    {/* Total Time */}
+                                    {fileObj.uploadEndTime &&
+                                        fileObj.processingEndTime && (
+                                            <div>
+                                                <p>
+                                                    Total Time:{" "}
+                                                    {formatDuration(
+                                                        fileObj.uploadStartTime,
+                                                        fileObj.processingEndTime
                                                     )}
-                                            </>
-                                        ) : null
-                                    }
-                                />
-                            </List.Item>
-                        )}
-                        style={{ marginTop: "16px" }}
-                    />
+                                                </p>
+                                            </div>
+                                        )}
+                                </div>
+                                {idx < fileList.length - 1 && <Divider />}
+                            </React.Fragment>
+                        ))}
+                    </div>
                     {/* Overall Metrics */}
                     {totalOverallTime > 0 && (
                         <div style={{ marginTop: "16px" }}>
                             <h3>Overall Metrics:</h3>
-                            <p>Total Upload Time: {formattedTotalUploadTime}</p>
+                            <p>
+                                Total Upload Time: {formattedTotalUploadTime}
+                            </p>
                             <p>
                                 Total Processing Time:{" "}
                                 {formattedTotalProcessingTime}

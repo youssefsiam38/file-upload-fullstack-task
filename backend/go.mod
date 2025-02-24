@@ -3,6 +3,7 @@ module github.com/youssefsiam38/file-upload-fullstack-task
 go 1.24.0
 
 require (
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/ieee0824/getenv v1.1.0
 	github.com/jackc/pgx/v5 v5.7.2

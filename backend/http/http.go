@@ -30,9 +30,10 @@ func StartServer(apis APIs) {
 	apiRouter.HandleFunc("/healthz", healthz).Methods("GET")
 
 	// grades
-	paymentApiSubrouter := apiRouter.PathPrefix("/grades").Subrouter()
+	gradesApiSubrouter := apiRouter.PathPrefix("/grades").Subrouter()
 
-	paymentApiSubrouter.HandleFunc("/upload", apis.GradesAPIs.UploadGradesCSVs).Methods("POST")
+	gradesApiSubrouter.HandleFunc("/upload", apis.GradesAPIs.UploadGradesCSV).Methods("POST")
+	gradesApiSubrouter.HandleFunc("/progress", apis.GradesAPIs.GetProcessingProgress).Methods("GET")
 
 	start(*port, r)
 }
