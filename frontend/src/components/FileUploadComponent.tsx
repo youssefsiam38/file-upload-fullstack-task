@@ -187,7 +187,7 @@ const FileUploadComponent: React.FC = () => {
                     .catch((err) => {
                         console.error("Error fetching progress:", err);
                     });
-            }, 2000);
+            }, 750);
 
             return () => clearInterval(intervalId);
         }
