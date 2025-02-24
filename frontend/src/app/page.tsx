@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 
 import { CopyToClipboard } from "@components/CopyToClipboard";
+import FileUploadComponent from "@components/FileUploadComponent";
 import {
     FilterDropdown,
     getDefaultSortOrder,
@@ -13,7 +14,6 @@ import { getDefaultFilter, useDeleteMany } from "@refinedev/core";
 import { Button, Flex, Input, Select, Space, Table, Typography } from "antd";
 import { FilterDropdownProps } from "antd/es/table/interface";
 import React from "react";
-import FileUploadComponent from "@components/FileUploadComponent";
 
 export default function IndexPage() {
     const {
@@ -24,7 +24,7 @@ export default function IndexPage() {
         tableQuery: tableQueryResult,
     } = useTable({
         resource: "student_grades",
-
+        liveMode: 'auto',
         pagination: {
             pageSize: 20,
         },
