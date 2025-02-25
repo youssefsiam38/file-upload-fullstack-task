@@ -24,7 +24,6 @@ export default function IndexPage() {
         tableQuery: tableQueryResult,
     } = useTable({
         resource: "student_grades",
-
         pagination: {
             pageSize: 20,
         },
@@ -36,6 +35,9 @@ export default function IndexPage() {
                     value: [],
                 },
             ],
+        },
+        meta: {
+            select: "id, student_name, subject, grade",
         },
     });
 
