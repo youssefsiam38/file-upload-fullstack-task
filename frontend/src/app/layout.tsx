@@ -8,7 +8,7 @@ import React, { Suspense } from "react";
 
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { ColorModeContextProvider } from "@contexts/color-mode";
-import { dataProvider, liveProvider } from "@providers/data-provider";
+import { dataProvider } from "@providers/data-provider";
 import "@refinedev/antd/dist/reset.css";
 
 export const metadata: Metadata = {
@@ -38,13 +38,11 @@ export default function RootLayout({
                   <Refine
                     routerProvider={routerProvider}
                     dataProvider={dataProvider}
-                    liveProvider={liveProvider}
                     notificationProvider={useNotificationProvider}
                     options={{
                       syncWithLocation: true,
                       warnWhenUnsavedChanges: true,
                       useNewQueryKeys: true,
-                      liveMode: 'auto',
                     }}
                   >
                     {children}
